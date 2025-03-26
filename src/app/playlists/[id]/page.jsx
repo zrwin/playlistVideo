@@ -1,17 +1,23 @@
-'use client';
+"use client";
+import VideoPlayer from "../../components/VideoPlayer";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { Progress } from "@/components/ui/progress";
+import PlaylistSidebar from "../../components/PlaylistSidebar"
 
 export default function Playlist() {
-  const playlistId = useParams().id; // Get playlist ID from URL params
+  const [progress, setProgress] = useState(13)
+  const playlistId = useParams().id;
   const [videos, setVideos] = useState([]);
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const [videoDetails, setVideoDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!playlistId) return;
 
-    console.log(playlistId);
     async function fetchVideos() {
       setLoading(true);
       setError(null);
@@ -20,7 +26,8 @@ export default function Playlist() {
       const options = {
         method: "GET",
         headers: {
-          "x-rapidapi-key": "318f8a0036msh8fc5b95f3216616p1351bajsn3de3adca4c82",
+          "x-rapidapi-key":
+            "318f8a0036msh8fc5b95f3216616p1351bajsn3de3adca4c82",
           "x-rapidapi-host": "youtube-v311.p.rapidapi.com",
         },
       };
@@ -30,6 +37,15 @@ export default function Playlist() {
 
         const data = await response.json();
         setVideos(data.items || []);
+        if (data.items.length > 0) {
+            const firstVideo = data.items[0].snippet;
+            setSelectedVideo(firstVideo.resourceId.videoId);
+            setVideoDetails({
+            title: firstVideo.title,
+            description: firstVideo.description,
+            likes: Math.floor(Math.random() * 1000), // Placeholder for likes
+          });
+        }
       } catch (error) {
         console.error("Error fetching videos:", error);
         setError(error.message);
@@ -41,40 +57,36 @@ export default function Playlist() {
     fetchVideos();
   }, [playlistId]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setProgress(66), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="p-6 max-w-3xl mx-auto bg-white shadow-lg rounded-lg">
-      <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">YouTube Playlist</h1>
+    <>
       {loading ? (
-        <p className="text-center text-gray-600">Loading videos...</p>
-      ) : error ? (
-        <p className="text-center text-red-500">Error: {error}</p>
-      ) : videos.length === 0 ? (
-        <p className="text-center text-gray-600">No videos found in this playlist.</p>
+        <div className=" flex h-screen justify-center items-center ">
+            <div className="w-1/3">
+
+          <Progress value={progress} className="h-2" />
+            </div>
+        </div>
       ) : (
-        <ul className="flex flex-col space-y-6">
-          {videos.map((video, index) => (
-            <li key={video.id} className="flex items-center space-x-4 p-4 bg-gray-100 rounded-lg shadow-md">
-              <span className="text-2xl font-bold text-gray-700">{index + 1}.</span>
-              <img
-                src={video.snippet.thumbnails.medium.url}
-                alt={video.snippet.title}
-                className="w-32 h-20 rounded-lg"
-              />
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">{video.snippet.title}</h3>
-                <a
-                  href={`https://www.youtube.com/watch?v=${video.snippet.resourceId.videoId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  Watch Video
-                </a>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="flex h-screen ">
+        {  error ? (<p className="text-center text-red-500">Error: {error}</p>) :
+          videos.length === 0 ? (
+          <p className="text-center text-gray-600">
+            No videos found in this playlist.
+          </p>
+  ) : (
+      <>
+            <VideoPlayer videoId={selectedVideo}  videoDetails={videoDetails} showFullDescription={showFullDescription} setShowFullDescription={setShowFullDescription} />
+            <PlaylistSidebar videos={videos} selectedVideo={selectedVideo} onSelectVideo={setSelectedVideo} />
+          </>
+          )
+        }
+        </div>
       )}
-    </div>
+    </>
   );
 }
